@@ -17,14 +17,22 @@ def logger(a_function):
         logging.basicConfig(filename='chat_viz.log', level=logging.INFO)
         t1 = time.time()
         x = a_function(*args, **kwargs)
-        t1 = time.time()-t1
+        t1 = time.time() - t1
         logging.info(f'{a_function.__name__,} takes {t1} to execute')
         return x
+
     return wrapper
 
 
 @logger
 def create_dataset():
+    """
+    Create a pandas dataset with the help of given chats.
+    The dataset will be a global variable.
+
+    :return:
+        True or False, says weather the database created successfully or not.
+    """
     global message_df
     file = open(values['-File Name-'], 'r', encoding='utf').read()
 
@@ -52,6 +60,10 @@ def create_dataset():
 
 @logger
 def month_viz():
+    """
+    Creates a bar graph of month and no of chats.
+    Shows results on interactive matplotlib window.
+    """
     sns.countplot(x=message_df.date_time.dt.month_name())
     plt.xticks(rotation=90)
     plt.title('Message in Months')
@@ -62,6 +74,10 @@ def month_viz():
 
 @logger
 def day_viz():
+    """
+    Creates a bar graph of days(Sun, Mon .....) and no of chats on those days.
+    Shows results on interactive matplotlib window.
+    """
     sns.countplot(x=message_df.date_time.dt.weekday)
     plt.xticks(ticks=np.arange(7), labels=['Mon', 'Tue', 'Wed', 'Thurs', 'Fri', 'Sat', 'Sun'])
     plt.title('Message count every Day')
@@ -72,6 +88,10 @@ def day_viz():
 
 @logger
 def year_viz():
+    """
+    Creates a bar graph of year and no of chats.
+    Shows results on interactive matplotlib window.
+    """
     sns.countplot(x=message_df['date_time'].dt.year)
     plt.title('Message count per Year')
     plt.xlabel('Year')
@@ -81,6 +101,10 @@ def year_viz():
 
 @logger
 def hour_viz():
+    """
+    Creates a bar graph of hour(24 hours) and no of chats.
+    Shows results on interactive matplotlib window.
+    """
     sns.countplot(x=message_df.date_time.dt.hour)
     plt.title('Message count every Hour in a day')
     plt.xlabel('Hours')
@@ -90,6 +114,11 @@ def hour_viz():
 
 @logger
 def timeline():
+    """
+    Plot a line graph to your whole timeline of chats.
+    Shows results on interactive matplotlib window.
+    """
+
     # Making relevant dataset
     message_timeline = pd.DataFrame({'date': message_df.date_time.dt.date, 'contact': message_df.contact})
     message_timeline = message_timeline.groupby(['date'])
@@ -105,6 +134,11 @@ def timeline():
 
 @logger
 def word_cloud():
+    """
+    Plot a wordcloud of your frequent words directly proportional to size.
+    Shows results on interactive matplotlib window.
+    """
+
     stopwords = STOPWORDS.union({'Media', 'omitted'})
 
     # instantiate a word cloud object
@@ -125,25 +159,39 @@ def word_cloud():
 
 @logger
 def total_message_by_person():
-    message_count = pd.crosstab(index=message_df['contact'], columns='No of messages')\
+    """
+    Make a window with list of all members of chat and their number of messages.
+    """
+    message_count = pd.crosstab(index=message_df['contact'], columns='No of messages') \
         .sort_values('No of messages', ascending=False)
     sg.Print(message_count, no_titlebar=True)
 
 
 @logger
 def avg_reply_time():
+    """
+    Return the average reply time of a person.
+    This function is only woks in individual chats, not in group chats.
+
+    :warning:-
+        Formula for this operation is not based on some standards, it's just for fun purpose.
+    """
     no_of_peoples = len(message_df['contact'].unique())
-    if no_of_peoples < 3:
+    if no_of_peoples == 2:
         time_calc = list(zip(message_df['date_time'], message_df['contact']))
         reply_time = {i: [] for i in message_df['contact'].unique()}
         for i in range(1, len(time_calc)):
             if time_calc[i][1] != time_calc[i - 1][1]:
                 reply_time[time_calc[i][1]].append(time_calc[i][0] - time_calc[i - 1][0])
-        sg.Print('\nWARNING: This is just a rough estimate\n', no_titlebar=True)
+        sg.Print('\nWARNING: This is just a rough estimate for fun.', no_titlebar=True)
+        sg.Print('Don\'t make any decision based on it.\n\n')
         for i in reply_time:
             sg.Print(f'Avg reply time of {i} is {stats.trim_mean(reply_time[i], 0.1)}')
+    else:
+        sg.popup_error("Can't use when number of people not equal to two")
 
 
+# Some essential default variables
 valid_file = False
 message_df = None
 sg.theme('LightGreen3')
@@ -273,6 +321,5 @@ while True:
             avg_reply_time()
         else:
             sg.popup_error('file read error')
-
 
 window.close()
