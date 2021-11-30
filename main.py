@@ -37,7 +37,7 @@ def create_dataset():
     file = open(values['-File Name-'], 'r', encoding='utf').read()
 
     # Matching Patterns of Whatsapp chats
-    first_date = r'\d{1,2}/\d{1,2}/\d{1,2},\s\d{1,2}:\d{1,2}\s\w\w'
+    first_date = r'\d{1,2}/\d{1,2}/\d{1,4},\s\d{1,2}:\d{1,2}\s\w\w'
     number_lookahead = r'(?::)|(?:\sjoined)|(?:Messages)|(?:\screated)|(?:\schanged)|(?:\sadded)|(?:\sremoved)|(?:\sleft)|(?:Your)'
     pattern = f'({first_date})\s-\s(.*?(?={number_lookahead})):?\s?(.*?)(?=(?:\n{first_date})|(?:$))'
     match = re.findall(pattern, file, re.DOTALL)
@@ -49,7 +49,11 @@ def create_dataset():
         # Cleaning data
         message_df.drop(message_df[message_df.contact == ''].index, axis=0, inplace=True)
         message_df.drop(message_df[message_df.contact == 'You'].index, axis=0, inplace=True)
-        message_df['date_time'] = pd.to_datetime(message_df.date_time, format=r'%d/%m/%y, %I:%M %p')
+        try:
+            message_df['date_time'] = pd.to_datetime(message_df.date_time, format=r'%d/%m/%Y, %I:%M %p')
+        except Exception as e:
+            message_df['date_time'] = pd.to_datetime(message_df.date_time, format=r'%d/%m/%y, %I:%M %p')
+            logging.error(f'format change {e}')
         # print('Shape of the dataset is', message_df.shape)
         # print(message_df.dtypes)
         # print(message_df.head(10))
@@ -139,7 +143,7 @@ def word_cloud():
     Shows results on interactive matplotlib window.
     """
 
-    stopwords = STOPWORDS.union({'Media', 'omitted'})
+    stopwords = STOPWORDS.union({'Media', 'omitted', 'message', 'deleted'})
 
     # instantiate a word cloud object
     message_wc = WordCloud(
